@@ -1,11 +1,18 @@
 # 🗜️ File Compressor [Backend/App]
-
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android)]
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
 
 ...rest of README
 A beautiful cross-platform Flutter app for compressing images, PDFs, and videos with an intuitive Material Design interface.
+## 📥 Quick Download
+
+**[⬇️ Download APK (v1.0.0)](https://github.com/raghavendrashivam474/file-compressor-app/releases/download/v1.0.0/app-release.apk)** - 47MB
+
+> **Requirements:** Android 5.0+ | **Size:** ~47MB | **Version:** 1.0.0
+
+---
 
 ## ✨ Features
 
