@@ -8,7 +8,7 @@ import '../models/compression_result.dart';
 
 class ApiService {
   // Production API URL
-  static const String baseUrl = 'https://file-compressor-backend.onrender.com/api/v1';
+  static const String baseUrl = 'https://file-compressor-backend-bacl.onrender.com/api/v1';
   
   final Dio _dio = Dio();
 
