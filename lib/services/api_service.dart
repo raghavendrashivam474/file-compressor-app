@@ -7,7 +7,7 @@ import '../models/compression_result.dart';
 
 class ApiService {
   // Change to localhost for Chrome testing
-  static const String baseUrl = 'http://172.16.35.19:8001/api/v1';
+  static const String baseUrl = 'https://file-compressor-backend-bacl.onrender.com/api/v1';
   
   final Dio _dio = Dio();
 
