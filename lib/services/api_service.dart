@@ -3,17 +3,18 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:permission_handler/permission_handler.dart';
 import '../models/compression_result.dart';
 
 class ApiService {
-  // Change to localhost for Chrome testing
-  static const String baseUrl = 'https://file-compressor-backend-bacl.onrender.com/api/v1';
+  // Production API URL
+  static const String baseUrl = 'https://file-compressor-backend.onrender.com/api/v1';
   
   final Dio _dio = Dio();
 
   // ==================== IMAGE COMPRESSION ====================
   
-  // Compress Image (Mobile - uses File)
+  // Compress Image (Mobile)
   Future<CompressionResult> compressImage({
     required File file,
     int quality = 50,
@@ -45,7 +46,7 @@ class ApiService {
     }
   }
 
-  // Compress Image (Web - uses bytes)
+  // Compress Image (Web)
   Future<CompressionResult> compressImageWeb({
     required String fileName,
     required Uint8List bytes,
@@ -76,7 +77,154 @@ class ApiService {
     }
   }
 
-    // ==================== VIDEO COMPRESSION ====================
+  // Download Image
+  Future<String> downloadImage(String filename) async {
+    try {
+      if (kIsWeb) {
+        return '$baseUrl/image/download/$filename';
+      }
+      
+      // Request storage permission
+      var status = await Permission.storage.request();
+      if (!status.isGranted) {
+        status = await Permission.manageExternalStorage.request();
+      }
+      
+      if (status.isGranted) {
+        // Get Downloads directory
+        Directory? downloadsDir;
+        if (Platform.isAndroid) {
+          downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!await downloadsDir.exists()) {
+            downloadsDir = await getExternalStorageDirectory();
+          }
+        } else {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+        
+        final savePath = '${downloadsDir!.path}/$filename';
+
+        await _dio.download(
+          '$baseUrl/image/download/$filename',
+          savePath,
+        );
+
+        return savePath;
+      } else {
+        throw Exception('Storage permission denied');
+      }
+    } catch (e) {
+      throw Exception('Download failed: $e');
+    }
+  }
+
+  // ==================== PDF COMPRESSION ====================
+  
+  // Compress PDF (Mobile)
+  Future<CompressionResult> compressPdf({
+    required File file,
+    int quality = 50,
+    Function(double)? onProgress,
+  }) async {
+    try {
+      String fileName = file.path.split('/').last;
+      
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        '$baseUrl/pdf/compress?quality=$quality',
+        data: formData,
+        onSendProgress: (sent, total) {
+          if (onProgress != null) {
+            onProgress(sent / total);
+          }
+        },
+      );
+
+      return CompressionResult.fromJson(response.data);
+    } catch (e) {
+      throw Exception('PDF compression failed: $e');
+    }
+  }
+
+  // Compress PDF (Web)
+  Future<CompressionResult> compressPdfWeb({
+    required String fileName,
+    required Uint8List bytes,
+    int quality = 50,
+    Function(double)? onProgress,
+  }) async {
+    try {
+      FormData formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        '$baseUrl/pdf/compress?quality=$quality',
+        data: formData,
+        onSendProgress: (sent, total) {
+          if (onProgress != null) {
+            onProgress(sent / total);
+          }
+        },
+      );
+
+      return CompressionResult.fromJson(response.data);
+    } catch (e) {
+      throw Exception('PDF compression failed: $e');
+    }
+  }
+
+  // Download PDF
+  Future<String> downloadPdf(String filename) async {
+    try {
+      if (kIsWeb) {
+        return '$baseUrl/pdf/download/$filename';
+      }
+      
+      // Request storage permission
+      var status = await Permission.storage.request();
+      if (!status.isGranted) {
+        status = await Permission.manageExternalStorage.request();
+      }
+      
+      if (status.isGranted) {
+        // Get Downloads directory
+        Directory? downloadsDir;
+        if (Platform.isAndroid) {
+          downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!await downloadsDir.exists()) {
+            downloadsDir = await getExternalStorageDirectory();
+          }
+        } else {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+        
+        final savePath = '${downloadsDir!.path}/$filename';
+
+        await _dio.download(
+          '$baseUrl/pdf/download/$filename',
+          savePath,
+        );
+
+        return savePath;
+      } else {
+        throw Exception('Storage permission denied');
+      }
+    } catch (e) {
+      throw Exception('Download failed: $e');
+    }
+  }
+
+  // ==================== VIDEO COMPRESSION ====================
   
   // Compress Video (Mobile)
   Future<CompressionResult> compressVideo({
@@ -160,126 +308,35 @@ class ApiService {
         return '$baseUrl/video/download/$filename';
       }
       
-      final dir = await getApplicationDocumentsDirectory();
-      final savePath = '${dir.path}/$filename';
-
-      await _dio.download(
-        '$baseUrl/video/download/$filename',
-        savePath,
-      );
-
-      return savePath;
-    } catch (e) {
-      throw Exception('Download failed: $e');
-    }
-  }
-
-  // Download Compressed Image
-  Future<String> downloadImage(String filename) async {
-    try {
-      if (kIsWeb) {
-        // On web, return download URL for browser
-        return '$baseUrl/image/download/$filename';
+      // Request storage permission
+      var status = await Permission.storage.request();
+      if (!status.isGranted) {
+        status = await Permission.manageExternalStorage.request();
       }
       
-      // On mobile, download to device storage
-      final dir = await getApplicationDocumentsDirectory();
-      final savePath = '${dir.path}/$filename';
-
-      await _dio.download(
-        '$baseUrl/image/download/$filename',
-        savePath,
-      );
-
-      return savePath;
-    } catch (e) {
-      throw Exception('Download failed: $e');
-    }
-  }
-
-  // ==================== PDF COMPRESSION ====================
-  
-  // Compress PDF (Mobile - uses File)
-  Future<CompressionResult> compressPdf({
-    required File file,
-    int quality = 50,
-    Function(double)? onProgress,
-  }) async {
-    try {
-      String fileName = file.path.split('/').last;
-      
-      FormData formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          file.path,
-          filename: fileName,
-        ),
-      });
-
-      final response = await _dio.post(
-        '$baseUrl/pdf/compress?quality=$quality',
-        data: formData,
-        onSendProgress: (sent, total) {
-          if (onProgress != null) {
-            onProgress(sent / total);
+      if (status.isGranted) {
+        // Get Downloads directory
+        Directory? downloadsDir;
+        if (Platform.isAndroid) {
+          downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!await downloadsDir.exists()) {
+            downloadsDir = await getExternalStorageDirectory();
           }
-        },
-      );
+        } else {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+        
+        final savePath = '${downloadsDir!.path}/$filename';
 
-      return CompressionResult.fromJson(response.data);
-    } catch (e) {
-      throw Exception('PDF compression failed: $e');
-    }
-  }
+        await _dio.download(
+          '$baseUrl/video/download/$filename',
+          savePath,
+        );
 
-  // Compress PDF (Web - uses bytes)
-  Future<CompressionResult> compressPdfWeb({
-    required String fileName,
-    required Uint8List bytes,
-    int quality = 50,
-    Function(double)? onProgress,
-  }) async {
-    try {
-      FormData formData = FormData.fromMap({
-        'file': MultipartFile.fromBytes(
-          bytes,
-          filename: fileName,
-        ),
-      });
-
-      final response = await _dio.post(
-        '$baseUrl/pdf/compress?quality=$quality',
-        data: formData,
-        onSendProgress: (sent, total) {
-          if (onProgress != null) {
-            onProgress(sent / total);
-          }
-        },
-      );
-
-      return CompressionResult.fromJson(response.data);
-    } catch (e) {
-      throw Exception('PDF compression failed: $e');
-    }
-  }
-
-  // Download Compressed PDF
-  Future<String> downloadPdf(String filename) async {
-    try {
-      if (kIsWeb) {
-        // On web, return download URL for browser
-        return '$baseUrl/pdf/download/$filename';
+        return savePath;
+      } else {
+        throw Exception('Storage permission denied');
       }
-      
-      // On mobile, download to device storage
-      final dir = await getApplicationDocumentsDirectory();
-      final savePath = '${dir.path}/$filename';
-
-      await _dio.download(
-        '$baseUrl/pdf/download/$filename',
-        savePath,
-      );
-
-      return savePath;
     } catch (e) {
       throw Exception('Download failed: $e');
     }
