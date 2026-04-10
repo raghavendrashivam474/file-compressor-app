@@ -56,17 +56,3 @@ Videos: Up to 97% size reduction
 ✅ Linux
 📄 License
 MIT License
-
-text
-
-
----
-
-## 📦 Step 3: Create `requirements.txt`
-
-**In backend folder:**
-
-```powershell
-cd C:\Users\ASUS\OneDrive\Documents\code\underrated\compressor-backend
-.\venv\Scripts\activate
-pip freeze > requirements.txt
